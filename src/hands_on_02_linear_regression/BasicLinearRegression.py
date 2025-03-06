@@ -10,8 +10,9 @@ class BasicLinearRegression:
   """
   @brief: recall that linear regression is defined as:
     y = wx + b,
-    or Y_1_n = X_1_m * W_m_n + B_1_n , [capital means matrices]
+    or Y_nx1 = W_nxm * X_mx1 + B_nx1 , [capital means matrices]
 
+    so, Y is column matrix, x is column matrix.
     data type? np.ndarray
   """
   W: np.ndarray = None
@@ -35,8 +36,8 @@ class BasicLinearRegression:
     logging.debug(f"f{x.shape=}")
     logging.debug(f"f{y.shape=}")
 
-    self.M: int = x.shape[1]
-    self.N: int = y.shape[1]
+    self.M: int = x.shape[0]
+    self.N: int = y.shape[0]
     pass
 
   def init_using_dimensions(self, features_count, target_count):
@@ -50,9 +51,9 @@ class BasicLinearRegression:
     logging.debug(f"feature count {m=}")
     logging.debug(f"target count {n=}")
     # init weights
-    self.W: np.ndarray = np.full(shape=(m, n), fill_value=1)
+    self.W: np.ndarray = np.full(shape=(n, m), fill_value=1)
     # init biases
-    self.B: np.ndarray = np.full(shape=(1, n), fill_value=0)
+    self.B: np.ndarray = np.full(shape=(n, 1), fill_value=0)
     pass
 
 
@@ -63,8 +64,8 @@ def start():
   model: BasicLinearRegression = BasicLinearRegression(x=x, y=y)
   b = model.B
   w = model.W
-  logging.debug(f"{b = }")
-  logging.debug(f"{w = }")
+  logging.debug(f"{b=}")
+  logging.debug(f"{w=}")
   pass
 
 
