@@ -56,18 +56,139 @@ class BasicLinearRegression:
     self.B: np.ndarray = np.full(shape=(n, 1), fill_value=0)
     pass
 
+    """
+     todo: 
+      * calculate loss? MSE
+      * optimization gradient descent
+      * regularization Lasso L1, Ridge L2
+      * function fit (x, y)
+      * function predict (x, y)
+    """
+
+    """
+    recall MSE(Y_actual, Y_predicted) = sum( (Yi_actual - Yi_predicted )**2 / M
+    then W = W - dMse
+    """
+
+
+def MSELoss(Y_actual: np.ndarray, Y_predicted: np.ndarray) -> float:
+  """
+  :param Y_actual: np.ndarray,
+  :param Y_predicted: np.ndarray,
+  :return: MSE(y), a floating number
+  recall MSE(Y_actual, Y_predicted) = sum( (Yi_actual - Yi_predicted )**2 / M
+    then W = W - dMse
+
+  """
+  n = Y_actual.shape[0]  # for simplicity, let's assume Y_nx1 a column matrix. then shape[0] is the n
+
+  totalDySquared = 0
+  for i in range(0, n):
+    ithDY_as_array: np.array = (Y_actual[i] - Y_predicted[i])
+    ithDY: float = ithDY_as_array[0]  # this converts array([0.145]) to 0.145, a number
+    ithDySquared = ithDY ** 2
+    totalDySquared += ithDySquared
+
+  meanDySquared = totalDySquared / n
+  mseY = meanDySquared
+  return mseY  # so the loss function returns a number?
+
+
+def GradientDescent(W_nxm: np.ndarray, learning_rate: float, mse: float) -> np.ndarray:
+  W = W_nxm - learning_rate * mse
+  return W
+
+
+## Imcomplete implementation of L1, L2. they have some errors I know cz the matrix dimensions don't match.
+def L1Regularization(mse: float, W_nxmList: list[np.ndarray], someLambda: float):
+  """
+  L1 = mse + someLambda * sum ( |Wj| )
+  """
+  w0 = W_nxmList[0]
+  n = w0.shape[0]
+  m = w0.shape[1]
+  total = np.full(shape=(n, m), fill_value=0)
+
+  for wj in W_nxmList:
+    total += np.abs(wj)
+
+  l1 = mse + someLambda * total
+  return l1
+
+
+def L2Regularization(mse: float, W_nxmList: list[np.ndarray], someLambda: float):
+  """
+  L2 = mse + someLambda * sum ( Wj**2 )
+  """
+  w0 = W_nxmList[0]
+  n = w0.shape[0]
+  m = w0.shape[1]
+  total = np.full(shape=(n, m), fill_value=0)
+
+  for wj in W_nxmList:
+    total += wj * wj
+
+  l2 = mse + someLambda * total
+  return l2
+
+
+## regularization end
 
 def start():
-  y = np.array([[1, 2, 3]])  # y = np.array([1, 2, 3])  # error cz weird python syntax I guess
-  x = np.array([[1, 2], [3, 4], [5, 6]])
+  X_3x1 = np.array([
+    [0.1],
+    [1.2],
+    [2.3]
+  ])
 
-  model: BasicLinearRegression = BasicLinearRegression(x=x, y=y)
+  # y = np.array([[1.0, 2.0, 3.0]])  # y = np.array([1, 2, 3])  # error cz weird python syntax I guess. No I had mesed up somewhere
+  Y_4x1 = np.array([
+    [0.4],
+    [1.1],
+    [2.3],
+    [3.3]
+  ])
+
+  model: BasicLinearRegression = BasicLinearRegression(x=X_3x1, y=Y_4x1)
   b = model.B
   w = model.W
   logging.debug(f"{b=}")
   logging.debug(f"{w=}")
+
+  # for quick test of mse, take y_predicted = some random array
+  y_pred = np.array([
+    [0.5],
+    [1.6],
+    [2.7],
+    [2.9]
+  ])
+  mseLoss = MSELoss(Y_actual=Y_4x1, Y_predicted=y_pred)
+  logging.debug(f"{mseLoss=}")
+
+  someW_4x3 = GradientDescent(W_nxm=w, learning_rate=0.05, mse=mseLoss)
+  logging.debug(f"{someW_4x3=}")
+
   pass
 
 
 if __name__ == '__main__':
   start()
+
+
+"""
+mseLoss as array:
+2025-03-06 23:46:55,377 - DEBUG - mseLoss=array([0.145])
+2025-03-06 23:46:55,377 - DEBUG - someW_4x3=array([[0.99275, 0.99275, 0.99275],
+       [0.99275, 0.99275, 0.99275],
+       [0.99275, 0.99275, 0.99275],
+       [0.99275, 0.99275, 0.99275]])
+       
+       
+ --------
+ mse loss as a number:
+ 2025-03-06 23:47:49,377 - DEBUG - mseLoss=np.float64(0.14500000000000005)
+2025-03-06 23:47:49,378 - DEBUG - someW_4x3=array([[0.99275, 0.99275, 0.99275],
+       [0.99275, 0.99275, 0.99275],
+       [0.99275, 0.99275, 0.99275],
+       [0.99275, 0.99275, 0.99275]])
+"""
