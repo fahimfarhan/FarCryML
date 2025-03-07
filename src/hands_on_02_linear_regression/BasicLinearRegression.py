@@ -18,8 +18,8 @@ class BasicLinearRegression:
 
     data type? np.ndarray
   """
-  W: np.ndarray = None
-  B: np.ndarray = None
+  W_mx1: np.ndarray = None
+  B: float = None
   M: int = None  # features_count
   N: int = None  # target_count
 
@@ -54,24 +54,34 @@ class BasicLinearRegression:
     logging.debug(f"feature count {m=}")
     logging.debug(f"target count {n=}")
     # init weights
-    self.W: np.ndarray = np.full(shape=(m, 1), fill_value=1)
+    self.W_mx1: np.ndarray = np.full(shape=(m, 1), fill_value=1)
     # init biases
-    self.B: np.ndarray = np.full(shape=(n, 1), fill_value=0)
+    # self.B: np.ndarray = np.full(shape=(n, 1), fill_value=0)
+    self.B = 0
     pass
 
-    """
+  def fit(self, X_nxm, Y_nx1, lr: float = 0.05, epochs: int = 100):
+    for _ in range(epochs):
+      self.W_mx1 = GradientDescent(W_mx1=self.W_mx1, X_nxm=X_nxm, Y_nx1=Y_nx1, learning_rate=lr)
+    pass
+
+  def predict(self, X_nxm: np.ndarray):
+    Y_pred_nx1 = np.matmul(X_nxm, self.W_mx1) + self.B
+    return Y_pred_nx1
+
+  """
      todo: 
       * calculate loss? MSE
       * optimization gradient descent
       * regularization Lasso L1, Ridge L2
       * function fit (x, y)
       * function predict (x, y)
-    """
+  """
 
-    """
+  """
     recall MSE(Y_actual, Y_predicted) = sum( (Yi_actual - Yi_predicted )**2 / M
     then W = W - dMse
-    """
+  """
 
 
 def MSELoss(Y_actual: np.ndarray, Y_predicted: np.ndarray) -> float:
@@ -96,9 +106,10 @@ def MSELoss(Y_actual: np.ndarray, Y_predicted: np.ndarray) -> float:
   return mseY  # so the loss function returns a number?
 
 
-def GradientDescent(W_mx1: np.ndarray, X_nxm: np.ndarray, Y_nx1: np.ndarray, learning_rate: float) -> np.ndarray:
+def GradientDescent(W_mx1: np.ndarray, X_nxm: np.ndarray, Y_nx1: np.ndarray, learning_rate: float, bias: float) -> (np.ndarray, float):
   """
    the formula W:=W−α⋅(2/n)XT(XW−Y)
+  :param bias:
   :param W_mx1:
   :param X_nxm:
   :param Y_nx1:
@@ -106,6 +117,9 @@ def GradientDescent(W_mx1: np.ndarray, X_nxm: np.ndarray, Y_nx1: np.ndarray, lea
   :return:
   """
   n = Y_nx1.shape[0]
+  # find prediction
+  Y_pred_nx1 = np.matmul(X_nxm, W_mx1) + bias
+  # find W_new
   # find delta = xw - y
   delta_nx1 = np.matmul(X_nxm, W_mx1) - Y_nx1
   # find gradient
@@ -113,7 +127,11 @@ def GradientDescent(W_mx1: np.ndarray, X_nxm: np.ndarray, Y_nx1: np.ndarray, lea
   gradient_mx1 = (2.0 / n) * np.matmul(X_mxn, delta_nx1)
   # find W_new
   W_mx1_new = W_mx1 - learning_rate * gradient_mx1
-  return W_mx1_new
+
+  # find B_new
+  gradient_b = (2.0 / n) * np.sum(delta_nx1)  # Gradient for bias
+  new_bias = bias - learning_rate * gradient_b
+  return W_mx1_new, new_bias
 
 
 def L1Regularization(mse: float, W_mx1: np.ndarray, someLambda: float):
@@ -165,14 +183,13 @@ def start():
   ])
 
   model: BasicLinearRegression = BasicLinearRegression(x=X_4x3, y=Y_4x1)
-  b_4x1 = model.B
-  w_3x1 = model.W
-  logging.debug(f"{b_4x1=}")
+  bias = model.B
+  w_3x1 = model.W_mx1
+  logging.debug(f"{bias=}")
   logging.debug(f"{w_3x1=}")
 
-  assert b_4x1.shape == (4, 1)
   assert w_3x1.shape == (3, 1)
-  assert np.all(model.W == 1)  # Check if W is initialized to 1
+  assert np.all(model.W_mx1 == 1)  # Check if W is initialized to 1
   assert np.all(model.B == 0)  # Check if B is initialized to 0
 
   #  test mseLoss, L1, L2, and optim
@@ -188,8 +205,9 @@ def start():
   someMseLoss = MSELoss(Y_actual=Y_4x1, Y_predicted=Y_4x1_predicted)
   print(f"{someMseLoss=}")
   print(f"{w_3x1=}")
-  Wj = GradientDescent(W_mx1=w_3x1, X_nxm=X_4x3, Y_nx1=Y_4x1, learning_rate=0.05)
+  Wj, bj = GradientDescent(W_mx1=w_3x1, X_nxm=X_4x3, Y_nx1=Y_4x1, learning_rate=0.05, bias=bias)
   print(f"{Wj=}")
+  print(f"{bj=}")
 
   l1 = L1Regularization(someMseLoss, w_3x1, someLambda=0.05)
   print(f"{l1=}")

@@ -62,14 +62,13 @@ def test_initialization():
   ])
 
   model: BasicLinearRegression = BasicLinearRegression(x=X_4x3, y=Y_4x1)
-  b_4x1 = model.B
-  w_3x1 = model.W
-  logging.debug(f"{b_4x1=}")
+  bias = model.B
+  w_3x1 = model.W_mx1
+  logging.debug(f"{bias=}")
   logging.debug(f"{w_3x1=}")
 
-  assert b_4x1.shape == (4, 1)
   assert w_3x1.shape == (3, 1)
-  assert np.all(model.W == 1)  # Check if W is initialized to 1
+  assert np.all(model.W_mx1 == 1)  # Check if W is initialized to 1
   assert np.all(model.B == 0)  # Check if B is initialized to 0
 
   #  test mseLoss, L1, L2, and optim
@@ -85,8 +84,9 @@ def test_initialization():
   someMseLoss = MSELoss(Y_actual=Y_4x1, Y_predicted=Y_4x1_predicted)
   print(f"{someMseLoss=}")
   print(f"{w_3x1=}")
-  Wj = GradientDescent(W_mx1=w_3x1, X_nxm=X_4x3, Y_nx1=Y_4x1, learning_rate=0.05)
+  Wj, bj = GradientDescent(W_mx1=w_3x1, X_nxm=X_4x3, Y_nx1=Y_4x1, learning_rate=0.05, bias=bias)
   print(f"{Wj=}")
+  print(f"{bj=}")
 
   l1 = L1Regularization(someMseLoss, w_3x1, someLambda=0.05)
   print(f"{l1=}")
