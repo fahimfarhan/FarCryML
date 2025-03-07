@@ -10,9 +10,11 @@ class BasicLinearRegression:
   """
   @brief: recall that linear regression is defined as:
     y = wx + b,
-    or Y_nx1 = W_nxm * X_mx1 + B_nx1 , [capital means matrices]
+    or Y_nx1 = X_nxm * W_mx1 + B_nx1 , [capital means matrices]
 
-    so, Y is column matrix, x is column matrix.
+    so, Y is column matrix, x is matrix.
+    We have n equations cz y has n samples. if there are m features, then 1 eqn has m xs. thus n eqns have nxm xs.
+
     data type? np.ndarray
   """
   W: np.ndarray = None
@@ -36,7 +38,7 @@ class BasicLinearRegression:
     logging.debug(f"f{x.shape=}")
     logging.debug(f"f{y.shape=}")
 
-    self.M: int = x.shape[0]
+    self.M: int = x.shape[1]
     self.N: int = y.shape[0]
     pass
 
@@ -51,7 +53,7 @@ class BasicLinearRegression:
     logging.debug(f"feature count {m=}")
     logging.debug(f"target count {n=}")
     # init weights
-    self.W: np.ndarray = np.full(shape=(n, m), fill_value=1)
+    self.W: np.ndarray = np.full(shape=(m, 1), fill_value=1)
     # init biases
     self.B: np.ndarray = np.full(shape=(n, 1), fill_value=0)
     pass

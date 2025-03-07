@@ -40,14 +40,15 @@ def test_dimensionality_y():
 
 def test_initialization():
   """
+  @brief: recall that linear regression is defined as:
   y = wx + b,
-  or Y_nx1 = W_nxm * X_mx1 + B_nx1 , [capital means matrices]
-
+  or Y_nx1 = X_nxm * W_mx1 + B_nx1 , [capital means matrices]
   """
-  X_3x1 = np.array([
-    [0],
-    [1],
-    [2]
+  X_4x3 = np.array([
+    [0, 1, 2],
+    [1, 2, 3],
+    [2, 3, 4],
+    [3, 4, 5]
   ])
 
   Y_4x1 = np.array([
@@ -57,14 +58,14 @@ def test_initialization():
     [3]
   ])
 
-  model: BasicLinearRegression = BasicLinearRegression(x=X_3x1, y=Y_4x1)
+  model: BasicLinearRegression = BasicLinearRegression(x=X_4x3, y=Y_4x1)
   b_4x1 = model.B
-  w_4x3 = model.W
+  w_3x1 = model.W
   logging.debug(f"{b_4x1=}")
-  logging.debug(f"{w_4x3=}")
+  logging.debug(f"{w_3x1=}")
 
   assert b_4x1.shape == (4, 1)
-  assert w_4x3.shape == (4, 3)
+  assert w_3x1.shape == (3, 1)
   assert np.all(model.W == 1)  # Check if W is initialized to 1
   assert np.all(model.B == 0)  # Check if B is initialized to 0
   pass
