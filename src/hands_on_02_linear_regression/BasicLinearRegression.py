@@ -1,5 +1,6 @@
-import numpy as np
 import logging
+
+import numpy as np
 
 # Configure the logging
 logging.basicConfig(level=logging.DEBUG,  # Set the logging level
@@ -86,8 +87,7 @@ def MSELoss(Y_actual: np.ndarray, Y_predicted: np.ndarray) -> float:
 
   totalDySquared = 0
   for i in range(0, n):
-    ithDY_as_array: np.array = (Y_actual[i] - Y_predicted[i])
-    ithDY: float = ithDY_as_array[0]  # this converts array([0.145]) to 0.145, a number
+    ithDY: float = (Y_actual[i][0] - Y_predicted[i][0])
     ithDySquared = ithDY ** 2
     totalDySquared += ithDySquared
 
@@ -96,39 +96,37 @@ def MSELoss(Y_actual: np.ndarray, Y_predicted: np.ndarray) -> float:
   return mseY  # so the loss function returns a number?
 
 
-def GradientDescent(W_nxm: np.ndarray, learning_rate: float, mse: float) -> np.ndarray:
-  W = W_nxm - learning_rate * mse
+def GradientDescent(W_mx1: np.ndarray, learning_rate: float, mse: float) -> np.ndarray:
+  W = W_mx1 - learning_rate * mse
   return W
 
 
-## Imcomplete implementation of L1, L2. they have some errors I know cz the matrix dimensions don't match.
-def L1Regularization(mse: float, W_nxmList: list[np.ndarray], someLambda: float):
+def L1Regularization(mse: float, W_mx1: np.ndarray, someLambda: float):
   """
   L1 = mse + someLambda * sum ( |Wj| )
   """
-  w0 = W_nxmList[0]
-  n = w0.shape[0]
-  m = w0.shape[1]
-  total = np.full(shape=(n, m), fill_value=0)
 
-  for wj in W_nxmList:
+  m = W_mx1.shape[0]
+  total: float = 0.0
+
+  for j in range(0, m):
+    wj = W_mx1[j][0]
     total += np.abs(wj)
 
   l1 = mse + someLambda * total
   return l1
 
 
-def L2Regularization(mse: float, W_nxmList: list[np.ndarray], someLambda: float):
+def L2Regularization(mse: float, W_mx1: np.ndarray, someLambda: float):
   """
   L2 = mse + someLambda * sum ( Wj**2 )
   """
-  w0 = W_nxmList[0]
-  n = w0.shape[0]
-  m = w0.shape[1]
-  total = np.full(shape=(n, m), fill_value=0)
+  m = W_mx1.shape[0]
+  total: float = 0.0
 
-  for wj in W_nxmList:
-    total += wj * wj
+  for j in range(0, m):
+    wj = W_mx1[j][0]
+    total += wj ** 2
 
   l2 = mse + someLambda * total
   return l2
@@ -175,7 +173,6 @@ def start():
 
 if __name__ == '__main__':
   start()
-
 
 """
 mseLoss as array:
