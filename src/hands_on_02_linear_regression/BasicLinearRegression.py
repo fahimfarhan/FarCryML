@@ -135,39 +135,51 @@ def L2Regularization(mse: float, W_mx1: np.ndarray, someLambda: float):
 ## regularization end
 
 def start():
-  X_3x1 = np.array([
-    [0.1],
-    [1.2],
-    [2.3]
+  X_4x3 = np.array([
+    [0.0, 1.0, 2.0],
+    [1.0, 2.0, 3.0],
+    [2.0, 3.0, 4.0],
+    [3.0, 4.0, 5.0]
   ])
 
-  # y = np.array([[1.0, 2.0, 3.0]])  # y = np.array([1, 2, 3])  # error cz weird python syntax I guess. No I had mesed up somewhere
   Y_4x1 = np.array([
-    [0.4],
+    [0.1],
     [1.1],
-    [2.3],
-    [3.3]
+    [2.2],
+    [3.5]
   ])
 
-  model: BasicLinearRegression = BasicLinearRegression(x=X_3x1, y=Y_4x1)
-  b = model.B
-  w = model.W
-  logging.debug(f"{b=}")
-  logging.debug(f"{w=}")
+  model: BasicLinearRegression = BasicLinearRegression(x=X_4x3, y=Y_4x1)
+  b_4x1 = model.B
+  w_3x1 = model.W
+  logging.debug(f"{b_4x1=}")
+  logging.debug(f"{w_3x1=}")
 
-  # for quick test of mse, take y_predicted = some random array
-  y_pred = np.array([
+  assert b_4x1.shape == (4, 1)
+  assert w_3x1.shape == (3, 1)
+  assert np.all(model.W == 1)  # Check if W is initialized to 1
+  assert np.all(model.B == 0)  # Check if B is initialized to 0
+
+  #  test mseLoss, L1, L2, and optim
+  #  let's create random Y, and pretend it to be Y_predicted
+  Y_4x1_predicted = np.array([
     [0.5],
-    [1.6],
-    [2.7],
-    [2.9]
+    [1.1],
+    [2.4],
+    [3.1]
   ])
-  mseLoss = MSELoss(Y_actual=Y_4x1, Y_predicted=y_pred)
-  logging.debug(f"{mseLoss=}")
 
-  someW_4x3 = GradientDescent(W_nxm=w, learning_rate=0.05, mse=mseLoss)
-  logging.debug(f"{someW_4x3=}")
+  print("\n----------\n")
+  someMseLoss = MSELoss(Y_actual=Y_4x1, Y_predicted=Y_4x1_predicted)
+  print(f"{someMseLoss=}")
+  print(f"{w_3x1=}")
+  Wj = GradientDescent(W_mx1=w_3x1, learning_rate=0.05, mse=someMseLoss)
+  print(f"{Wj=}")
 
+  l1 = L1Regularization(someMseLoss, w_3x1, someLambda=0.05)
+  print(f"{l1=}")
+  l2 = L2Regularization(someMseLoss, w_3x1, someLambda=0.05)
+  print(f"{l2=}")
   pass
 
 
