@@ -85,7 +85,7 @@ def test_initialization():
   someMseLoss = MSELoss(Y_actual=Y_4x1, Y_predicted=Y_4x1_predicted)
   print(f"{someMseLoss=}")
   print(f"{w_3x1=}")
-  Wj = GradientDescent(W_mx1=w_3x1, learning_rate=0.05, mse=someMseLoss)
+  Wj = GradientDescent(W_mx1=w_3x1, X_nxm=X_4x3, Y_nx1=Y_4x1, learning_rate=0.05)
   print(f"{Wj=}")
 
   l1 = L1Regularization(someMseLoss, w_3x1, someLambda=0.05)

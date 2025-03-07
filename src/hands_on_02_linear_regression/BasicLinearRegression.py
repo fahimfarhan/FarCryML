@@ -87,7 +87,7 @@ def MSELoss(Y_actual: np.ndarray, Y_predicted: np.ndarray) -> float:
 
   totalDySquared = 0
   for i in range(0, n):
-    ithDY: float = (Y_actual[i][0] - Y_predicted[i][0])
+    ithDY: float = (float(Y_actual[i][0]) - float(Y_predicted[i][0]))
     ithDySquared = ithDY ** 2
     totalDySquared += ithDySquared
 
@@ -96,9 +96,24 @@ def MSELoss(Y_actual: np.ndarray, Y_predicted: np.ndarray) -> float:
   return mseY  # so the loss function returns a number?
 
 
-def GradientDescent(W_mx1: np.ndarray, learning_rate: float, mse: float) -> np.ndarray:
-  W = W_mx1 - learning_rate * mse
-  return W
+def GradientDescent(W_mx1: np.ndarray, X_nxm: np.ndarray, Y_nx1: np.ndarray, learning_rate: float) -> np.ndarray:
+  """
+   the formula W:=W−α⋅(2/n)XT(XW−Y)
+  :param W_mx1:
+  :param X_nxm:
+  :param Y_nx1:
+  :param learning_rate:
+  :return:
+  """
+  n = Y_nx1.shape[0]
+  # find delta = xw - y
+  delta_nx1 = np.matmul(X_nxm, W_mx1) - Y_nx1
+  # find gradient
+  X_mxn = X_nxm.T
+  gradient_mx1 = (2.0 / n) * np.matmul(X_mxn, delta_nx1)
+  # find W_new
+  W_mx1_new = W_mx1 - learning_rate * gradient_mx1
+  return W_mx1_new
 
 
 def L1Regularization(mse: float, W_mx1: np.ndarray, someLambda: float):
@@ -173,7 +188,7 @@ def start():
   someMseLoss = MSELoss(Y_actual=Y_4x1, Y_predicted=Y_4x1_predicted)
   print(f"{someMseLoss=}")
   print(f"{w_3x1=}")
-  Wj = GradientDescent(W_mx1=w_3x1, learning_rate=0.05, mse=someMseLoss)
+  Wj = GradientDescent(W_mx1=w_3x1, X_nxm=X_4x3, Y_nx1=Y_4x1, learning_rate=0.05)
   print(f"{Wj=}")
 
   l1 = L1Regularization(someMseLoss, w_3x1, someLambda=0.05)
