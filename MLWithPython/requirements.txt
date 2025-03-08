@@ -1,6 +1,10 @@
 numpy
 scikit-learn
 pandas
+polars
 matplotlib
+# secondary dependencies of primary dependencies
+# tkinter # on ubuntu sudo apt install python3-tk
+tk
 # unit tests
 pytest

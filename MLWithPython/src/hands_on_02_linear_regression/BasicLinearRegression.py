@@ -61,8 +61,11 @@ class BasicLinearRegression:
     pass
 
   def fit(self, X_nxm, Y_nx1, lr: float = 0.05, epochs: int = 100):
+    logging.debug(f"{X_nxm.shape=},\t{type(X_nxm)=}")
+    logging.debug(f"{Y_nx1.shape=},\t{type(Y_nx1)=}")
+    logging.debug(f"{self.W_mx1.shape=},\t{type(self.W_mx1)=}")
     for _ in range(epochs):
-      self.W_mx1 = GradientDescent(W_mx1=self.W_mx1, X_nxm=X_nxm, Y_nx1=Y_nx1, learning_rate=lr)
+      self.W_mx1 = GradientDescent(W_mx1=self.W_mx1, X_nxm=X_nxm, Y_nx1=Y_nx1, learning_rate=lr, bias=self.B)
     pass
 
   def predict(self, X_nxm: np.ndarray):
@@ -117,11 +120,15 @@ def GradientDescent(W_mx1: np.ndarray, X_nxm: np.ndarray, Y_nx1: np.ndarray, lea
   :return:
   """
   n = Y_nx1.shape[0]
+  # convert bias from float, to a matrix for matrix ops
+  B: np.ndarray = np.full(shape=(n, 1), fill_value=bias)
+
   # find prediction
-  Y_pred_nx1 = np.matmul(X_nxm, W_mx1) + bias
+  Y_pred_nx1 = np.matmul(X_nxm, W_mx1) + B
   # find W_new
   # find delta = xw - y
-  delta_nx1 = np.matmul(X_nxm, W_mx1) - Y_nx1
+  # delta_nx1 = np.matmul(X_nxm, W_mx1) - Y_nx1
+  delta_nx1 = Y_pred_nx1 - Y_nx1
   # find gradient
   X_mxn = X_nxm.T
   gradient_mx1 = (2.0 / n) * np.matmul(X_mxn, delta_nx1)
@@ -218,21 +225,3 @@ def start():
 
 if __name__ == '__main__':
   start()
-
-"""
-mseLoss as array:
-2025-03-06 23:46:55,377 - DEBUG - mseLoss=array([0.145])
-2025-03-06 23:46:55,377 - DEBUG - someW_4x3=array([[0.99275, 0.99275, 0.99275],
-       [0.99275, 0.99275, 0.99275],
-       [0.99275, 0.99275, 0.99275],
-       [0.99275, 0.99275, 0.99275]])
-       
-       
- --------
- mse loss as a number:
- 2025-03-06 23:47:49,377 - DEBUG - mseLoss=np.float64(0.14500000000000005)
-2025-03-06 23:47:49,378 - DEBUG - someW_4x3=array([[0.99275, 0.99275, 0.99275],
-       [0.99275, 0.99275, 0.99275],
-       [0.99275, 0.99275, 0.99275],
-       [0.99275, 0.99275, 0.99275]])
-"""
