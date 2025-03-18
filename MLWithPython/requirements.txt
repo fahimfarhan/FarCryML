@@ -8,3 +8,10 @@ matplotlib
 tk
 # unit tests
 pytest
+transformers[torch]
+huggingface
+datasets
+torch
+torchvision
+torchaudio
+accelerate>=0.26.0
