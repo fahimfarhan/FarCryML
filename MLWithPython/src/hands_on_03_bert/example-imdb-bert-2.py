@@ -11,6 +11,14 @@ from transformers import DistilBertTokenizer, DistilBertForSequenceClassificatio
     TrainingArguments, Trainer
 import evaluate
 
+def getCorrectDevice():
+    if torch.cuda.is_available():
+        return torch.device("cuda")  # For NVIDIA GPUs
+    elif torch.backends.mps.is_available():
+        return torch.device("mps")  # For Apple Silicon Macs
+    else:
+        return torch.device("cpu")   # Fallback to CPU
+
 def dynamicBatchSize():
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0).lower()
@@ -39,11 +47,17 @@ def dynamicBatchSize():
 
     return batch_size
 
+def getGpuName():
+    gpu_name = torch.cuda.get_device_name(0).lower()
+    return gpu_name
+
+print(getGpuName())
+
 # constants / parameters
 MODEL_NAME = "distilbert-base-uncased"
 DATASET_NAME = "imdb"
 # dynamic batch size (kaggle vs my laptop)
-BATCH_SIZE = 64 # dynamicBatchSize() # 8 in my laptop, 32 in kaggle
+BATCH_SIZE = dynamicBatchSize() # kaggle supports batch size = 64 for T4 gpu
 
 # enable some logs to debug properly, change wandb to offline mode for now
 transformers.logging.set_verbosity_debug()  # Set to 'INFO' for fewer logs
@@ -53,10 +67,20 @@ wandb.init(mode="offline")  # Logs only locally
 imdb_datasets_dict = datasets.load_dataset(DATASET_NAME)
 
 # Drop unnecessary columns to speed up the process
-imdb_datasets_dict = DatasetDict({
-    "train": imdb_datasets_dict["train"],
-    "test": imdb_datasets_dict["test"]
-})
+isMyLaptop = "nvidia geforce rtx 2060" in getGpuName()
+
+if isMyLaptop:
+    # my laptop is not meant to do actual bert training. just some quick runs to makesure my code is ok.
+    # else I need to debug the code in kaggle which will be a hassle
+    imdb_datasets_dict = DatasetDict({
+        "train": imdb_datasets_dict["train"].select(range(25)),  # Select the first 25 entries from the train dataset
+        "test": imdb_datasets_dict["test"].select(range(25))     # Select the first 25 entries from the test dataset
+    })
+else:
+    imdb_datasets_dict = DatasetDict({
+        "train": imdb_datasets_dict["train"],
+        "test": imdb_datasets_dict["test"]
+    })
 
 # check gpu availability
 isGpuAvailable = torch.cuda.is_available()
@@ -119,9 +143,19 @@ def compute_metrics(eval_pred):
     logits, labels = eval_pred
     predictions = np.argmax(logits, axis=1)  # Get predicted class
 
+    positive_logits = logits[:, 1]  # convert 2d array into 1d array like this: logits[0][1], logits[1][1], logits[2][1], ... ..., logits[n][1]
+    print("----- debug start ----")
+    print(f"{logits = }")  # a 2d array.
+    print(f"{labels = }")  # 1d array
+    print(f"{predictions = }") # 1d array
+    print(f"{positive_logits = }")
+    print("----- debug end ----")
+
     accuracy = accuracy_metric.compute(predictions=predictions, references=labels)["accuracy"]
     f1 = f1_metric.compute(predictions=predictions, references=labels, average="weighted")["f1"]
-    roc_auc = roc_auc_metric.compute(prediction_scores=logits, references=labels)["roc_auc"]
+    # roc_auc = roc_auc_metric.compute(prediction_scores=logits, references=labels)["roc_auc"] # 2d array vs 1d array matrix dim mismatch
+    roc_auc = roc_auc_metric.compute(prediction_scores=positive_logits, references=labels)["roc_auc"] # using positive_logits repairs the error
+
 
     return {
         "accuracy": accuracy,
@@ -151,7 +185,9 @@ trainer.evaluate() # evaluate
 # test_results = trainer.evaluate(test_dataset) # <-- this is the actual test
 
 def predict_sentiment(text):
-    tokenized_text = DistilBertTokenizer(text, return_tensors="pt", padding=True, truncation=True)
+    device = getCorrectDevice()
+    tokenized_text = distilBertTokenizer(text, return_tensors="pt", padding=True, truncation=True)
+    tokenized_text = {key: value.to(device) for key, value in tokenized_text.items()}
 
     with torch.no_grad():
         outputs = bert_model(**tokenized_text)

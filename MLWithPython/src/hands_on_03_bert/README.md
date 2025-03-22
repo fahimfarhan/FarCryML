@@ -21,3 +21,6 @@ BATCH_SIZE = dynamicBatchSize() # 8 in my laptop, 32 in kaggle
 * train, eval
 * predictions
 
+## errors:
+* Matrix mismatch! specially for matrices accuracy, roc_aur, f1, etc.  
+* param name mismatch
