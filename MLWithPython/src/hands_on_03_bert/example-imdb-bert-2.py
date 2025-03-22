@@ -51,156 +51,163 @@ def getGpuName():
     gpu_name = torch.cuda.get_device_name(0).lower()
     return gpu_name
 
-print(getGpuName())
+if __name__ == '__main__':
+    print(getGpuName())
 
-# constants / parameters
-MODEL_NAME = "distilbert-base-uncased"
-DATASET_NAME = "imdb"
-# dynamic batch size (kaggle vs my laptop)
-BATCH_SIZE = dynamicBatchSize() # kaggle supports batch size = 64 for T4 gpu
+    # constants / parameters
+    MODEL_NAME = "distilbert-base-uncased"
+    DATASET_NAME = "imdb"
+    # dynamic batch size (kaggle vs my laptop)
+    BATCH_SIZE = dynamicBatchSize()  # kaggle supports batch size = 64 for T4 gpu
 
-# enable some logs to debug properly, change wandb to offline mode for now
-transformers.logging.set_verbosity_debug()  # Set to 'INFO' for fewer logs
-wandb.init(mode="offline")  # Logs only locally
+    # enable some logs to debug properly, change wandb to offline mode for now
+    transformers.logging.set_verbosity_debug()  # Set to 'INFO' for fewer logs
+    wandb.init(mode="offline")  # Logs only locally
 
-# load imdb data
-imdb_datasets_dict = datasets.load_dataset(DATASET_NAME)
+    # load imdb data
+    imdb_datasets_dict = datasets.load_dataset(DATASET_NAME)
 
-# Drop unnecessary columns to speed up the process
-isMyLaptop = "nvidia geforce rtx 2060" in getGpuName()
+    # Drop unnecessary columns to speed up the process
+    isMyLaptop = "nvidia geforce rtx 2060" in getGpuName()
 
-if isMyLaptop:
-    # my laptop is not meant to do actual bert training. just some quick runs to makesure my code is ok.
-    # else I need to debug the code in kaggle which will be a hassle
-    imdb_datasets_dict = DatasetDict({
-        "train": imdb_datasets_dict["train"].select(range(25)),  # Select the first 25 entries from the train dataset
-        "test": imdb_datasets_dict["test"].select(range(25))     # Select the first 25 entries from the test dataset
-    })
-else:
-    imdb_datasets_dict = DatasetDict({
-        "train": imdb_datasets_dict["train"],
-        "test": imdb_datasets_dict["test"]
-    })
+    if isMyLaptop:
+        # my laptop is not meant to do actual bert training. just some quick runs to makesure my code is ok.
+        # else I need to debug the code in kaggle which will be a hassle
+        imdb_datasets_dict = DatasetDict({
+            "train": imdb_datasets_dict["train"].select(range(25)),
+            # Select the first 25 entries from the train dataset
+            "test": imdb_datasets_dict["test"].select(range(25))  # Select the first 25 entries from the test dataset
+        })
+    else:
+        imdb_datasets_dict = DatasetDict({
+            "train": imdb_datasets_dict["train"],
+            "test": imdb_datasets_dict["test"]
+        })
 
-# check gpu availability
-isGpuAvailable = torch.cuda.is_available()
+    # check gpu availability
+    isGpuAvailable = torch.cuda.is_available()
 
-# load tokenizer
-distilBertTokenizer = DistilBertTokenizer.from_pretrained(pretrained_model_name_or_path=MODEL_NAME)
-
-# preprocess / map data to tokenized_data
-def tokenization_function(entry):
-    try:
-        value = entry["text"]
-        tokenized_value = tokenized_value = distilBertTokenizer(text=value, padding="max_length", truncation=True)
-        return tokenized_value
-    except Exception as x:
-        print(f"Tokenization function error: {x = }")
-        return None
-
-tokenized_dataset_dict = imdb_datasets_dict.map(function=tokenization_function, batched=True)
-
-# drop unnecessary table from tokenized dataset
-print("creating tokenized_dataset")
-tokenized_dataset_dict = tokenized_dataset_dict.remove_columns(["text"])  # we don't need text column
-tokenized_dataset_dict = tokenized_dataset_dict.rename_column("label", "labels")  # cz huggingface wants y = labels
-tokenized_dataset_dict.set_format("torch") # convert to pytorch objects
-
-print("creating DataCollatorWithPadding")
-# Question: What is data collector? / what does it do?
-# Data collator for padding batches dynamically
-data_collator = DataCollatorWithPadding(tokenizer=distilBertTokenizer)
-
-# load the bert model
-bert_model = (DistilBertForSequenceClassification
-              .from_pretrained(pretrained_model_name_or_path=MODEL_NAME, num_labels=2))
-if isGpuAvailable:
-    bert_model = bert_model.to("cuda")
+    # load tokenizer
+    distilBertTokenizer = DistilBertTokenizer.from_pretrained(pretrained_model_name_or_path=MODEL_NAME)
 
 
-# init the training_args
-print("init training_args")
-training_args = TrainingArguments(
-    run_name="exp-bert-2",
-    output_dir="./bert-imdb",
-    eval_strategy="epoch",
-    save_strategy="epoch",
-    per_device_train_batch_size=BATCH_SIZE,
-    per_device_eval_batch_size=BATCH_SIZE,
-    num_train_epochs=3,
-    weight_decay=0.01,
-    logging_dir="./logs"
-)
-# create trainer object
-
-# Load desired metrics
-# Load metrics
-accuracy_metric = evaluate.load("accuracy")
-f1_metric = evaluate.load("f1")
-roc_auc_metric = evaluate.load("roc_auc")
-
-def compute_metrics(eval_pred):
-    logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=1)  # Get predicted class
-
-    positive_logits = logits[:, 1]  # convert 2d array into 1d array like this: logits[0][1], logits[1][1], logits[2][1], ... ..., logits[n][1]
-    print("----- debug start ----")
-    print(f"{logits = }")  # a 2d array.
-    print(f"{labels = }")  # 1d array
-    print(f"{predictions = }") # 1d array
-    print(f"{positive_logits = }")
-    print("----- debug end ----")
-
-    accuracy = accuracy_metric.compute(predictions=predictions, references=labels)["accuracy"]
-    f1 = f1_metric.compute(predictions=predictions, references=labels, average="weighted")["f1"]
-    # roc_auc = roc_auc_metric.compute(prediction_scores=logits, references=labels)["roc_auc"] # 2d array vs 1d array matrix dim mismatch
-    roc_auc = roc_auc_metric.compute(prediction_scores=positive_logits, references=labels)["roc_auc"] # using positive_logits repairs the error
+    # preprocess / map data to tokenized_data
+    def tokenization_function(entry):
+        try:
+            value = entry["text"]
+            tokenized_value = tokenized_value = distilBertTokenizer(text=value, padding="max_length", truncation=True)
+            return tokenized_value
+        except Exception as x:
+            print(f"Tokenization function error: {x = }")
+            return None
 
 
-    return {
-        "accuracy": accuracy,
-        "f1": f1,
-        "roc_auc": roc_auc
-    }
+    tokenized_dataset_dict = imdb_datasets_dict.map(function=tokenization_function, batched=True)
 
-print("create trainer")
-trainer = Trainer(
-    model=bert_model,
-    args=training_args,
-    train_dataset=tokenized_dataset_dict["train"], # train
-    eval_dataset=tokenized_dataset_dict["test"],   # validate
-    data_collator=data_collator,
-    compute_metrics=compute_metrics
-)
+    # drop unnecessary table from tokenized dataset
+    print("creating tokenized_dataset")
+    tokenized_dataset_dict = tokenized_dataset_dict.remove_columns(["text"])  # we don't need text column
+    tokenized_dataset_dict = tokenized_dataset_dict.rename_column("label", "labels")  # cz huggingface wants y = labels
+    tokenized_dataset_dict.set_format("torch")  # convert to pytorch objects
+
+    print("creating DataCollatorWithPadding")
+    # Question: What is data collector? / what does it do?
+    # Data collator for padding batches dynamically
+    data_collator = DataCollatorWithPadding(tokenizer=distilBertTokenizer)
+
+    # load the bert model
+    bert_model = (DistilBertForSequenceClassification
+                  .from_pretrained(pretrained_model_name_or_path=MODEL_NAME, num_labels=2))
+    if isGpuAvailable:
+        bert_model = bert_model.to("cuda")
+
+    # init the training_args
+    print("init training_args")
+    training_args = TrainingArguments(
+        run_name="exp-bert-2",
+        output_dir="./bert-imdb",
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        per_device_train_batch_size=BATCH_SIZE,
+        per_device_eval_batch_size=BATCH_SIZE,
+        num_train_epochs=3,
+        weight_decay=0.01,
+        logging_dir="./logs"
+    )
+    # create trainer object
+
+    # Load desired metrics
+    # Load metrics
+    accuracy_metric = evaluate.load("accuracy")
+    f1_metric = evaluate.load("f1")
+    roc_auc_metric = evaluate.load("roc_auc")
 
 
+    def compute_metrics(eval_pred):
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=1)  # Get predicted class
 
-# trainer.start, trainer.end
-# the training!
-print("trainer.train()!")
-trainer.train() # this will fine tune the dataset for 3 epochs!
-print("trainer.evaluate()!")
-trainer.evaluate() # evaluate
+        positive_logits = logits[:,
+                          1]  # convert 2d array into 1d array like this: logits[0][1], logits[1][1], logits[2][1], ... ..., logits[n][1]
+        print("----- debug start ----")
+        print(f"{logits = }")  # a 2d array.
+        print(f"{labels = }")  # 1d array
+        print(f"{predictions = }")  # 1d array
+        print(f"{positive_logits = }")
+        print("----- debug end ----")
 
-# test_results = trainer.evaluate(test_dataset) # <-- this is the actual test
+        accuracy = accuracy_metric.compute(predictions=predictions, references=labels)["accuracy"]
+        f1 = f1_metric.compute(predictions=predictions, references=labels, average="weighted")["f1"]
+        # roc_auc = roc_auc_metric.compute(prediction_scores=logits, references=labels)["roc_auc"] # 2d array vs 1d array matrix dim mismatch
+        roc_auc = roc_auc_metric.compute(prediction_scores=positive_logits, references=labels)[
+            "roc_auc"]  # using positive_logits repairs the error
 
-def predict_sentiment(text):
-    device = getCorrectDevice()
-    tokenized_text = distilBertTokenizer(text, return_tensors="pt", padding=True, truncation=True)
-    tokenized_text = {key: value.to(device) for key, value in tokenized_text.items()}
+        return {
+            "accuracy": accuracy,
+            "f1": f1,
+            "roc_auc": roc_auc
+        }
 
-    with torch.no_grad():
-        outputs = bert_model(**tokenized_text)
 
-    logits = outputs.logits
-    probabilities = F.softmax(logits, dim=1)  # Convert logits to probabilities
-    predicted_class = torch.argmax(probabilities, dim=1).item()  # Get class with max probability
+    print("create trainer")
+    trainer = Trainer(
+        model=bert_model,
+        args=training_args,
+        train_dataset=tokenized_dataset_dict["train"],  # train
+        eval_dataset=tokenized_dataset_dict["test"],  # validate
+        data_collator=data_collator,
+        compute_metrics=compute_metrics
+    )
 
-    return f"Prediction: {'Positive' if predicted_class == 1 else 'Negative'}, Probabilities: {probabilities.tolist()}"
+    # trainer.start, trainer.end
+    # the training!
+    print("trainer.train()!")
+    trainer.train()  # this will fine tune the dataset for 3 epochs!
+    print("trainer.evaluate()!")
+    trainer.evaluate()  # evaluate
 
-print("predict_statement")
-print(predict_sentiment("I really loved this movie! It was fantastic."))
-print(predict_sentiment("This was the worst movie I have ever seen."))
-# make some predictions
 
-# new topic: explain the bert model, ie why it works / does not work
+    # test_results = trainer.evaluate(test_dataset) # <-- this is the actual test
+
+    def predict_sentiment(text):
+        device = getCorrectDevice()
+        tokenized_text = distilBertTokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        tokenized_text = {key: value.to(device) for key, value in tokenized_text.items()}
+
+        with torch.no_grad():
+            outputs = bert_model(**tokenized_text)
+
+        logits = outputs.logits
+        probabilities = F.softmax(logits, dim=1)  # Convert logits to probabilities
+        predicted_class = torch.argmax(probabilities, dim=1).item()  # Get class with max probability
+
+        return f"Prediction: {'Positive' if predicted_class == 1 else 'Negative'}, Probabilities: {probabilities.tolist()}"
+
+
+    print("predict_statement")
+    print(predict_sentiment("I really loved this movie! It was fantastic."))
+    print(predict_sentiment("This was the worst movie I have ever seen."))
+    # make some predictions
+
+    # new topic: explain the bert model, ie why it works / does not work
+
