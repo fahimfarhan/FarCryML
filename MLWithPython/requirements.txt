@@ -17,3 +17,10 @@ torchaudio
 accelerate>=0.26.0
 wandb
 evaluate
+
+# just to follow a tutorial. I think I'll stick to hugging facetutorials
+# bert-imdb-extensive-tutorial really messes with other tutorials. Now that it is completed, I am removing its dependencies
+
+# pytorch_pretrained_bert
+# keras
+# tensorflow

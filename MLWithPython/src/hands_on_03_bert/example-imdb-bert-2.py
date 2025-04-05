@@ -7,9 +7,13 @@ import transformers
 import wandb
 from datasets import DatasetDict
 import torch.nn.functional as F
+from torch import nn
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, DataCollatorWithPadding, \
-    TrainingArguments, Trainer
+    TrainingArguments, Trainer, BertModel
 import evaluate
+
+MODEL_NAME = "distilbert-base-uncased"
+
 
 def getCorrectDevice():
     if torch.cuda.is_available():
@@ -51,11 +55,40 @@ def getGpuName():
     gpu_name = torch.cuda.get_device_name(0).lower()
     return gpu_name
 
+
+class IMDBClassifier(nn.Module):
+
+    def __init__(self, n_classes):
+        super(IMDBClassifier, self).__init__()
+        self.bert = BertModel.from_pretrained(MODEL_NAME)
+        self.drop = nn.Dropout(p=0.3)
+        self.out = nn.Linear(self.bert.config.hidden_size, n_classes)
+        self.h0 = torch.randn(1, 16, 100)
+        self.c0 = torch.randn(1, 16, 100)
+        self.LSTM = nn.LSTM(768, 100, 1, batch_first=True)
+        self.conv1 = torch.nn.Conv1d(1, 1, 3, stride=2)
+        self.conv2 = torch.nn.Conv1d(1, 1, 3, stride=2)
+
+        self.Linear = nn.Linear(24, 2)
+
+    def forward(self, input_ids, attention_mask):
+        output = self.bert(input_ids=input_ids, attention_mask=attention_mask, return_dict=True)
+
+        output = self.drop(output['pooler_output'])
+
+        output = output.view(output.shape[0], 1, output.shape[1])
+        output, (hn, cn) = self.LSTM(output, (self.h0, self.c0))
+        output = self.conv1(output)
+        output = self.conv2(output)
+
+        flatten = output.view(16, -1)
+        dense1 = self.Linear(flatten)
+        return dense1
+
 if __name__ == '__main__':
     print(getGpuName())
 
     # constants / parameters
-    MODEL_NAME = "distilbert-base-uncased"
     DATASET_NAME = "imdb"
     # dynamic batch size (kaggle vs my laptop)
     BATCH_SIZE = dynamicBatchSize()  # kaggle supports batch size = 64 for T4 gpu
@@ -90,6 +123,9 @@ if __name__ == '__main__':
     # load tokenizer
     distilBertTokenizer = DistilBertTokenizer.from_pretrained(pretrained_model_name_or_path=MODEL_NAME)
 
+    distilBertTokenizer.encode_plus("some review",max_length = 100, add_special_tokens= True,
+                                                  pad_to_max_length= True,return_attention_mask=True,
+                                                  return_token_type_ids=False,return_tensors='pt')
 
     # preprocess / map data to tokenized_data
     def tokenization_function(entry):
@@ -116,8 +152,15 @@ if __name__ == '__main__':
     data_collator = DataCollatorWithPadding(tokenizer=distilBertTokenizer)
 
     # load the bert model
-    bert_model = (DistilBertForSequenceClassification
-                  .from_pretrained(pretrained_model_name_or_path=MODEL_NAME, num_labels=2))
+    # tutorial 1
+    isCustomModel = True
+    if isCustomModel:
+        bert_model = (DistilBertForSequenceClassification
+                      .from_pretrained(pretrained_model_name_or_path=MODEL_NAME, num_labels=2))
+    else:
+        # tutorial 2
+        bert_model = IMDBClassifier(n_classes=2)
+
     if isGpuAvailable:
         bert_model = bert_model.to("cuda")
 

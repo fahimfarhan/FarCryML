@@ -24,3 +24,7 @@ BATCH_SIZE = dynamicBatchSize() # 8 in my laptop, 32 in kaggle
 ## errors:
 * Matrix mismatch! specially for matrices accuracy, roc_aur, f1, etc.  
 * param name mismatch
+
+## 04-04-2025
+
+pytorch_pretrained_bert yet another library.
