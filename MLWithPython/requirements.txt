@@ -17,6 +17,7 @@ torchaudio
 accelerate>=0.26.0
 wandb
 evaluate
+huggingface_hub[hf_xet]  # sth to do with offline support
 
 # just to follow a tutorial. I think I'll stick to hugging facetutorials
 # bert-imdb-extensive-tutorial really messes with other tutorials. Now that it is completed, I am removing its dependencies
