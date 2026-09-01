@@ -8,7 +8,7 @@ def main():
     x, y = load_iris(return_X_y=True, as_frame=False)
     train_x, test_x, train_y, test_y = train_test_split(x, y, train_size=0.8)
 
-    model = DecisionTreeClassifier()
+    model = DecisionTreeClassifier(max_depth=4)
     trainedmodel = model.fit(X=train_x, y=train_y)
 
     predicted_y = trainedmodel.predict(test_x)

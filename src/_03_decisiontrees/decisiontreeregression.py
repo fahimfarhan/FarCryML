@@ -7,7 +7,7 @@ def main():
     x,y = load_diabetes(return_X_y=True, as_frame=False)
     train_x, test_x, train_y, test_y = train_test_split(x, y, train_size=0.8)
 
-    model = DecisionTreeRegressor()
+    model = DecisionTreeRegressor(max_depth=4)
     trainedmodel = model.fit(train_x, train_y)
 
     predicted_y = trainedmodel.predict(test_x)
