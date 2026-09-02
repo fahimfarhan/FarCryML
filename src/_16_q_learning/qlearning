@@ -1,0 +1,45 @@
+import numpy as np
+
+# 5 states, 2 actions
+# action 0 = left
+# action 1 = right
+
+Q = np.zeros((5, 2))
+
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.1
+
+for episode in range(1000):
+
+    state = 0
+
+    for step in range(100):
+
+        # Epsilon-greedy action
+        if np.random.random() < epsilon:
+            action = np.random.randint(2)
+        else:
+            action = np.argmax(Q[state])
+
+        # Environment
+        if action == 1:
+            next_state = min(state + 1, 4)
+        else:
+            next_state = max(state - 1, 0)
+
+        reward = 1 if next_state == 4 else 0
+
+        # Q-learning update. <--- this is the most important part
+        Q[state, action] += alpha * (
+            reward
+            + gamma * np.max(Q[next_state])
+            - Q[state, action]
+        )
+
+        state = next_state
+
+        if state == 4:
+            break
+
+print(Q)
