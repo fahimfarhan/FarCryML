@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "mlxtend>=0.25.0",
     "numpy>=2.5.2",
     "pandas>=3.0.5",
     "scikit-learn>=1.9.0",
