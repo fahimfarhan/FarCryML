@@ -22,3 +22,19 @@ The bare minimum implement from scratch
 * What does the basic code look like?
 * What are 2–4 important parameters?
 * What metric do I use to see whether it worked?
+
+```python
+class Model:
+    def __init__(self):
+        pass
+
+    """
+    Assuming X has dimensions (n,m), and Y has dimensions (n, 1) a column vector for convenience.
+    """
+    def fit(self, x: np.ndarray, y: np.ndarray):
+        pass
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        predicted_y: np.ndarray = None
+        return predicted_y
+```
