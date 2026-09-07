@@ -65,7 +65,11 @@ class SimpleLayer:
 
         self.dW = dW
         self.db = db
-        pass
+
+        # Gradient to the previous layer
+        dA_prev = dZ @ self.w.T
+
+        return dA_prev
 
     def update(
         self,
@@ -74,6 +78,30 @@ class SimpleLayer:
         self.w = self.w - learningrate * self.dW
         self.b = self.b - learningrate * self.db
         pass
+
+class NeuralNetwork:
+    def __init__(self):
+        self.layers = []
+
+    def add(self, layer):
+        self.layers.append(layer)
+
+    def forward(self, x):
+        for layer in self.layers:
+            x = layer.forward(x)
+
+        return x
+
+    def backward(self, y, prediction):
+        dA = -2 * (y - prediction)
+
+        for layer in reversed(self.layers):
+            dA = layer.backward(dA)
+
+    def update(self, learning_rate):
+        for layer in self.layers:
+            layer.update(learning_rate)
+
 
 def testcase1():
     X = np.array([
